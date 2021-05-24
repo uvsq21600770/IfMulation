@@ -105,6 +105,95 @@ int getRandomInSet(int size)
 	return k;
 }
 
+void resetFreeServ(int* freeServ, int size)
+{
+	for(int i = 0; i < size; i++)
+	{
+		freeServ[i] = 0;
+	}
+}
+
+void printFreeServ(int* freeServ, int size)
+{
+	for(int i = 0; i < size; i++)
+	{
+		printf("fS[%d] = %d\n", i, freeServ[i]);
+	}
+	printf("\n");
+}
+
+void printQUEUE(int* QUEUE, int size)
+{
+	for(int i = 0; i < size; i++)
+	{
+		printf("QUEUE[%d] = %d\n", i, QUEUE[i]);
+	}
+	printf("\n");
+}
+
+int getMinInQueue(int* QUEUE, int size)
+{
+	int NB_S_CANDIDAT = 1; // NBR de file de taille minimale
+	int* freeServ = init_QUEUE(size); // 1 si plus petite file, 0 sinon
+	int minVal = QUEUE[0]; //Valeur du minimum
+	int minIndex = 0; // Index du minimum
+  freeServ[0] = 1;
+
+	for(int i = 1; i < size; i++)
+	{
+		if(QUEUE[i] < minVal) // On trouve une file plus petite que la minimale actuelle
+		{
+			minVal = QUEUE[i];
+			minIndex = i;
+			NB_S_CANDIDAT = 1;
+//printFreeServ(freeServ, size);
+			resetFreeServ(freeServ, size);
+//printFreeServ(freeServ, size);
+			freeServ[i] = 1;
+		}
+		else if(QUEUE[i] == minVal) // On trouve une autre file de même taille que la minimale
+		{
+			freeServ[i] = 1;
+			NB_S_CANDIDAT++;
+		}
+	}
+
+	if(NB_S_CANDIDAT == 1) // On a une seule file plus petite que les autres
+	{
+		free(freeServ);
+//printf("Min: %d\n", minIndex);
+		return minIndex;
+	} else {
+		// Si on a plusieurs files de taille minimale ==>
+
+		int amountServersToSkip = getRandomInSet(NB_S_CANDIDAT); // Le nombre de serveurs qu'on va ignorer
+		 																												 //on prend le amountServersToSkip + 1 ème serveur
+
+		// On parcourt tous les Serveurs en incrémentant S_FREE_VISITED pour chaque Serveur libre vu
+		// On place le client sur le k ième Serveur libre vu (histoire de conserver du random sans avoir à faire des centaines de tirages unif)
+		int S_FREE_VISITED = 0;
+		int realIndex = -1;
+		while(realIndex < size && S_FREE_VISITED <= amountServersToSkip)
+		{
+			realIndex++;
+			if(freeServ[realIndex] == 1)
+			{
+				S_FREE_VISITED++;
+			}
+		}
+
+// printf("RealIndexF: %d ", realIndex);
+// printf("rng: %d\n", amountServersToSkip);
+// printQUEUE(QUEUE, size);
+//printFreeServ(freeServ, size);
+		free(freeServ);
+//printf("realIndex: %d\n", realIndex);
+		return realIndex;
+	}
+	free(freeServ);
+	return -1;
+}
+
 double simul_MMn (double lambda, double mu, int *converge, int n) {
 
 	if(n <= 0)
@@ -117,11 +206,16 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	int* DS = init(n, n);
 	int* FS = init(n, 2 * n);
 	int* QUEUE = init_QUEUE(n);
+	for(int i = 0; i < 1000; i++)
+	{
+		unif();
+	}
 //int nb_S_FREE = n;
 
+	// Toutes les queues sont vides, on peut donc juste faire un tirage uniforme
 	int randomFirstAC = getRandomInSet(n);
 	ECHEANCIER E = nouveau_evenement (AC[randomFirstAC],0.0);
-//(QUEUE[randomFirstAC])++;
+
 	printf("F_AC: %d - QUEUE: %d\n", randomFirstAC, QUEUE[randomFirstAC]);
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
@@ -151,13 +245,23 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			lastT = T;
 			N++;
 			(QUEUE[e->le_type])++;
-			int randomAC = getRandomInSet(n);
-//printf("AC[%d] - randomAC: %d, QUEUE: %d\n", e->le_type, randomAC, QUEUE[e->le_type]);
-			E = inserer_evenement(nouveau_evenement(AC[randomAC],T+expo(lambda)),E);
+//printf("Before shortest Queue\n");
+			int shortestQueueAC = getMinInQueue(QUEUE, n);
+
+//  if(QUEUE[0] > 2)
+// {
+// printf("\n --------\n sQAC: %d\n", shortestQueueAC);
+// printQUEUE(QUEUE, n);
+//  }
+//printf("AC[%d] - randomAC: %d, QUEUE: %d\n", e->le_type, shortestQueueAC, QUEUE[e->le_type]);
+			E = inserer_evenement(nouveau_evenement(AC[shortestQueueAC],T+expo(lambda)),E);
 
 			if (QUEUE[e->le_type] == 1) // Le PC de cette queue est libre
 			{
 				E = inserer_evenement(nouveau_evenement(DS[e->le_type],T),E);
+//S_BUSY[randomAC] = 1;
+//nb_S_FREE--;
+//printf("AC - DS[%d] - free: %d\n", realIndex, nb_S_FREE);
 			}
 		}
 
@@ -165,6 +269,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		if (e->le_type >= DS[0] && e->le_type <= DS[n-1]) {
 			T = e->la_date;
 			int offsetDStoFS = e->le_type+n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
+//printf("DS[%d] (%d) into FS[%d] (%d) - off(%d)\n",e->le_type - 1 ,DS[e->le_type - 1], e->le_type - 1, FS[e->le_type - 1], offsetDStoFS);
 //printf("DS[%d] - offset: %d\n", e->le_type, offsetDStoFS);
 			E = inserer_evenement(nouveau_evenement(offsetDStoFS,T+expo(mu)),E);
 		}
@@ -187,7 +292,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 
 		}
 		STOP++;
-//if(STOP == 1000) exit(10);
+//if(STOP == 5) exit(10);
 
 		nb_event++;
 		nb_e++;
