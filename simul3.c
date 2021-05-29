@@ -1,6 +1,5 @@
-#include "stdio.h"
-#include "stdlib.h"
 #include "math.h"
+#include "Include/TAC.h"
 
 int STOP = 0;
 
@@ -21,86 +20,6 @@ struct evenement {
 	struct evenement * suiv;
 };
 typedef struct evenement * ECHEANCIER;
-
-// Liste des temps d'arrivé des clients
-struct Tac {
-	double date;
-	struct Tac* next;
-};
-typedef struct Tac * TAC;
-
-// On va garder en mémoire le début, pour les pops et la fin pour les insert en O(1)
-struct list_Tac {
-	TAC head;
-	TAC tail;
-};
-typedef struct list_Tac* list_TAC;
-
-list_TAC add_TAC(list_TAC l_TAC, double d)
-{
-	TAC elem = malloc(sizeof(TAC));
-	if(!elem) exit(10);
-
-	elem->date = d;
-	elem->next = NULL;
-
-	if(!l_TAC) exit(11);
-
-	if(!l_TAC->head && !l_TAC->tail)
-	{
-		l_TAC->head = l_TAC->tail = elem;
-	} else if(!l_TAC->head || !l_TAC->tail)
-	{
-		exit(12);
-	} else {
-		l_TAC->tail->next = elem;
-		l_TAC->tail = elem;
-	}
-
-	return l_TAC;
-}
-
-// Pop la tête de la file pour récup la date
-double pop_TAC(list_TAC l_TAC)
-{
-	double res = l_TAC->head->date;
-
-	TAC h = NULL;
-	TAC prev = NULL;
-
-	if(!l_TAC) exit(13); // Liste non créée
-	if(!l_TAC->head && !l_TAC->tail) return 0; // Liste vide lors d'un pop
-	if(!l_TAC->head || !l_TAC->tail) exit(14); // Si l'un est NULL l'autre devrait l'être aussi
-
-	h = l_TAC->head;
-	prev = h->next;
-
-	free(h);
-	l_TAC->head = prev; // Décale la tête d'un cran
-
-	if(!l_TAC->head) l_TAC->tail = l_TAC->head; // Cohérence tête / queue
-
-	return res;
-}
-
-list_TAC free_list_TAC(list_TAC l_TAC)
-{
-	while(l_TAC->head)
-	{
-		pop_TAC(l_TAC);
-	}
-	return l_TAC;
-}
-
-list_TAC new_list_TAC()
-{
-	list_TAC l_TAC = malloc(sizeof(list_TAC));
-	if(!l_TAC) exit(15);
-
-	l_TAC->head = l_TAC->tail = NULL;
-
-	return l_TAC;
-}
 
 int* initDS(int n)
 {
@@ -196,14 +115,13 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	list_TAC l_TAC = new_list_TAC();
 
 	ECHEANCIER E = nouveau_evenement (AC,0.0);
-	add_TAC(l_TAC, 0.0);
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
 	double S = 0.0;
 
 	double totalWaitingTime = 0.0;
-	int totalAmountClients = 1;
+	int totalAmountClients = 0;
 	double averageWaitingTime = 0.0;
 
 	int* DS = initDS(n);
@@ -237,7 +155,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			double delay = T+expo(lambda);
 // printf("[AC] T = %lf\n", T);
 			E = inserer_evenement(nouveau_evenement(AC,delay),E);
-			add_TAC(l_TAC, delay);
+			add_TAC(l_TAC, T);
 			totalAmountClients++;
 // if(N > n)
 // printf("delay incoming at some point\n");
@@ -352,11 +270,13 @@ printf("\n");
 #endif
 
 printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountClients, averageWaitingTime);
-	// free tes putains de DS[] etc bordel
-	free(DS);
-	free(FS);
-	free(S_BUSY);
-	l_TAC = free_list_TAC(l_TAC);
+
+		// free tes putains de DS[] etc bordel
+		free(DS);
+		free(FS);
+		free(S_BUSY);
+		l_TAC = free_list_TAC(l_TAC);
+		free(l_TAC);
 
 		return averageWaitingTime;
 }
@@ -370,7 +290,7 @@ int main () {
 	int converge = 0;
 
 // ### EXO 3
-	for (lambda = 0.025 ; lambda < 10.5; lambda += 0.05) {
+	for (lambda = 0.025 ; lambda < 10.1; lambda += 0.05) {
 		nbmoy = simul_MMn (lambda,mu,&converge, 10);
 		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 			else printf("Pas de convergence\n");
