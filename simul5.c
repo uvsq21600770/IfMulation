@@ -349,6 +349,7 @@ printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountC
 int main () {
 	FILE *F;
 	F = fopen("mm1_5.data","w");
+	srand(10);
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
