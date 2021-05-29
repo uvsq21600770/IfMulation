@@ -13,5 +13,5 @@ sim2: TAC.c simul4.c
 run3: sim3
 	./sim3
 
-sim3: simul5.c
-	gcc -Wall -pedantic -o sim3 simul5.c -lm -g
+sim3: TAC.c simul5.c
+	gcc -Wall -pedantic -o sim3 TAC.c simul5.c -lm -g

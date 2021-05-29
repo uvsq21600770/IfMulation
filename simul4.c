@@ -8,7 +8,6 @@ double unif() {
 	return (double)random()/((double)RAND_MAX);
 }
 
-
 double expo (double L) {
 	return -log(unif())/L;
 }
@@ -174,7 +173,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		if (e->le_type >= DS[0] && e->le_type <= DS[n-1]) {
 			T = e->la_date;
 			int offsetDStoFS = e->le_type+n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
-			int offsetDStoAC = e->le_type-n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
+			int offsetDStoAC = e->le_type-n;
 //printf("DS[%d] - offset: %d\n", e->le_type, offsetDStoFS);
 
 			double arrivingTime = pop_TAC(l_TAC[offsetDStoAC]);
@@ -240,8 +239,10 @@ printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountC
 	for(int i = 0; i < n; i++)
 	{
 		l_TAC[i] = free_list_TAC(l_TAC[i]);
+		free(l_TAC[i]);
 	}
 	free(l_TAC);
+
 	return averageWaitingTime;
 }
 
