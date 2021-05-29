@@ -1,0 +1,6 @@
+set term pdf
+set output "mm1_n.pdf"
+set xlabel "delta"
+set ylabel "Temps Attente Moyen"
+plot "mm1_3.data" with lp title 'mode 1', \
+     "mm1_4.data" with lp title 'mode 2'
