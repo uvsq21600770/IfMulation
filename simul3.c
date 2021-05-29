@@ -22,6 +22,86 @@ struct evenement {
 };
 typedef struct evenement * ECHEANCIER;
 
+// Liste des temps d'arrivé des clients
+struct Tac {
+	double date;
+	struct Tac* next;
+};
+typedef struct Tac * TAC;
+
+// On va garder en mémoire le début, pour les pops et la fin pour les insert en O(1)
+struct list_Tac {
+	TAC head;
+	TAC tail;
+};
+typedef struct list_Tac* list_TAC;
+
+list_TAC add_TAC(list_TAC l_TAC, double d)
+{
+	TAC elem = malloc(sizeof(TAC));
+	if(!elem) exit(10);
+
+	elem->date = d;
+	elem->next = NULL;
+
+	if(!l_TAC) exit(11);
+
+	if(!l_TAC->head && !l_TAC->tail)
+	{
+		l_TAC->head = l_TAC->tail = elem;
+	} else if(!l_TAC->head || !l_TAC->tail)
+	{
+		exit(12);
+	} else {
+		l_TAC->tail->next = elem;
+		l_TAC->tail = elem;
+	}
+
+	return l_TAC;
+}
+
+// Pop la tête de la file pour récup la date
+double pop_TAC(list_TAC l_TAC)
+{
+	double res = l_TAC->head->date;
+
+	TAC h = NULL;
+	TAC prev = NULL;
+
+	if(!l_TAC) exit(13); // Liste non créée
+	if(!l_TAC->head && !l_TAC->tail) return 0; // Liste vide lors d'un pop
+	if(!l_TAC->head || !l_TAC->tail) exit(14); // Si l'un est NULL l'autre devrait l'être aussi
+
+	h = l_TAC->head;
+	prev = h->next;
+
+	free(h);
+	l_TAC->head = prev; // Décale la tête d'un cran
+
+	if(!l_TAC->head) l_TAC->tail = l_TAC->head; // Cohérence tête / queue
+
+	return res;
+}
+
+list_TAC free_list_TAC(list_TAC l_TAC)
+{
+	while(l_TAC->head)
+	{
+		pop_TAC(l_TAC);
+	}
+	return l_TAC;
+}
+
+list_TAC new_list_TAC()
+{
+	list_TAC l_TAC = malloc(sizeof(list_TAC));
+	if(!l_TAC) exit(15);
+
+	l_TAC->head = l_TAC->tail = NULL;
+
+	return l_TAC;
+}
+
 int* initDS(int n)
 {
 	int *DS = malloc(n * sizeof(int));
@@ -113,16 +193,24 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		exit(0);
 	}
 
+	list_TAC l_TAC = new_list_TAC();
+
 	ECHEANCIER E = nouveau_evenement (AC,0.0);
+	add_TAC(l_TAC, 0.0);
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
 	double S = 0.0;
 
+	double totalWaitingTime = 0.0;
+	int totalAmountClients = 1;
+	double averageWaitingTime = 0.0;
+
 	int* DS = initDS(n);
 	int* FS = initFS(n);
 	int* S_BUSY = initS_BUSY(n);
 	int nb_S_FREE = n;
+
 
 // for(int i = 0; i < n; i++)
 // {
@@ -146,7 +234,13 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			S = S + N*(T-lastT);
 			lastT = T;
 			N++;
-			E = inserer_evenement(nouveau_evenement(AC,T+expo(lambda)),E);
+			double delay = T+expo(lambda);
+// printf("[AC] T = %lf\n", T);
+			E = inserer_evenement(nouveau_evenement(AC,delay),E);
+			add_TAC(l_TAC, delay);
+			totalAmountClients++;
+// if(N > n)
+// printf("delay incoming at some point\n");
 			if (N <= n) // On a au moins un PC de libre
 			{
 				// On pull une uniforme et on détermine le Serveur libre associé
@@ -191,6 +285,11 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			T = e->la_date;
 			int offsetDStoFS = e->le_type+n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
 //printf("DS[%d] (%d) into FS[%d] (%d) - off(%d)\n",e->le_type - 1 ,DS[e->le_type - 1], e->le_type - 1, FS[e->le_type - 1], offsetDStoFS);
+
+			double arrivingTime = pop_TAC(l_TAC);
+			totalWaitingTime += T - arrivingTime;
+// printf("[DS %d] %lf -- %lf = %lf - %lf\n",e->le_type ,totalWaitingTime, T - arrivingTime, T, arrivingTime);
+
 			E = inserer_evenement(nouveau_evenement(offsetDStoFS,T+expo(mu)),E);
 		}
 
@@ -213,40 +312,53 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			}
 //printf("\n");
 		}
-		STOP++;
-		//if(STOP == 10) exit(10);
+STOP++;
+//if(STOP == 60) exit(100);
 
+//printf("T= %lf\n", T);
 		nb_event++;
 		nb_e++;
 		nbmoy = S/lastT;
-		if (nbmoy>max) max = nbmoy;
-		if (nbmoy<min) min = nbmoy;
+		averageWaitingTime = totalWaitingTime / (double)totalAmountClients;
+//printf("AWT: %lf\n", averageWaitingTime);
+		if (averageWaitingTime>max) max = averageWaitingTime;
+		if (averageWaitingTime<min) min = averageWaitingTime;
 		if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
-			if (max-min < nbmoy*EPSILON) *converge = 1;
-			else {	nb_e = 0; max = min = nbmoy;
-					L_MANCHON = 1e3*nbmoy;
+			if (max-min <= averageWaitingTime*EPSILON) *converge = 1;
+			else {	nb_e = 0; max = min = averageWaitingTime;
+					L_MANCHON = 1e3*averageWaitingTime;
 				}
 		}
+// if (nbmoy>max) max = nbmoy;
+// if (nbmoy<min) min = nbmoy;
+// if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
+// 	if (max-min < nbmoy*EPSILON) *converge = 1;
+// 	else {	nb_e = 0; max = min = nbmoy;
+// 			L_MANCHON = 1e3*nbmoy;
+// 		}
+// }
 		free(e);
 #ifdef DEBUG1
 if (nb_event % 1000000==0) {
-	printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
+	//printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
+	printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageWaitingTime,max);
 	fflush(stdout);
 	}
 #endif
 	}
 #ifdef DEBUG1
-printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
+printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageWaitingTime,max);
 printf("\n");
 #endif
 
+printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountClients, averageWaitingTime);
 	// free tes putains de DS[] etc bordel
 	free(DS);
 	free(FS);
 	free(S_BUSY);
+	l_TAC = free_list_TAC(l_TAC);
 
-
-	return S/lastT;
+		return averageWaitingTime;
 }
 
 int main () {
@@ -258,7 +370,7 @@ int main () {
 	int converge = 0;
 
 // ### EXO 3
-	for (lambda = 0.025 ; lambda < 1.2; lambda += 0.05) {
+	for (lambda = 0.025 ; lambda < 10.5; lambda += 0.05) {
 		nbmoy = simul_MMn (lambda,mu,&converge, 10);
 		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 			else printf("Pas de convergence\n");
