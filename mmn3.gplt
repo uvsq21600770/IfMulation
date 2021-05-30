@@ -1,7 +1,6 @@
 set term pdf
-set output "mm1_2_3.pdf"
+set output "mm1_3.pdf"
 set xlabel "lambda"
 set ylabel "Temps Attente Moyen"
 plot "mm1_3.data" with lines title 'mode 1', \
-     "mm1_4.data" with lines title 'mode 2', \
      "mm1_5.data" with lines title 'mode 3'

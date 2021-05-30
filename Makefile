@@ -1,3 +1,5 @@
+all: run run2 run3
+
 run : sim
 	./sim
 
