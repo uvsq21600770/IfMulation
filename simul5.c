@@ -110,7 +110,7 @@ int sum_QUEUE(int* QUEUE, int size)
 	for(int i = 0; i < size; i++)
 	{
 		if(QUEUE[i] > 1)
-			res += QUEUE[i];
+			res += QUEUE[i] - 1;
 	}
 	return res;
 }
@@ -244,7 +244,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	double max = 0.0;
 	double min = 0.0;
 //double nbmoy = 0;
-	double L_MANCHON = 1e5;
+	double L_MANCHON = 2e4;
 	*converge=0;
 	printf("### SIMUL %.3lf %.3lf\n",lambda,mu);
 	while ((nb_event < NB_EVENT_MAX) && (!(*converge))) {
@@ -324,7 +324,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
 			if (max-min <= averageWaitingTime*EPSILON) *converge = 1;
 			else {	nb_e = 0; max = min = averageWaitingTime;
-					L_MANCHON = 1e5*averageWaitingTime;
+					L_MANCHON = 2e4*averageWaitingTime;
 				}
 		}
 		free(e);
@@ -359,36 +359,36 @@ printf("TotalW: %lf, totalC: %d, average: %lf - sum: %d\n", totalWaitingTime, to
 
 int main () {
 	FILE *F;
-	F = fopen("mm1_5AZ.data","w");
+	F = fopen("mm1_5.data","w");
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
 	int converge = 0;
 
-// ### EXO 3
-	for (lambda = 9.9 ; lambda <= 10.0; lambda += 0.25) {
-		nbmoy = simul_MMn (lambda,mu,&converge, 10);
-		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
-			else printf("Pas de convergence\n");
 
-			printf("\n");
+	for (lambda = 1.0; lambda < 9.0; lambda += 0.5) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
 	}
 
-	// Pas sensé converger
-	// nbmoy = simul_MMn (11,mu,&converge, 10);
-	// if (converge) fprintf(F,"%lf %lf\n",11/(10*mu),nbmoy);
-	// 	else printf("Pas de convergence\n");
-// ### EXO 4
-/*
-	int i;
- 	lambda = 0.1;
-	for (i=0 ; i<10 ; i++) {
-		printf("### lambda = %lf\n",lambda);
-		nbmoy = simul_MM1 (lambda,mu,&converge);
-		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
-			else printf("Pas de convergence\n");
-		lambda = lambda + (1.0-lambda)/2.0;
+	for (lambda = 9.0; lambda < 9.9; lambda += 0.1) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
 	}
-*/
+
+	for (lambda = 9.9; lambda < 10.05; lambda += 0.025) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
+	}
+
 	fclose(F);
 }
