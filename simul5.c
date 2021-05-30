@@ -58,7 +58,7 @@ int* init_QUEUE(int n)
 //#define DS 2
 //#define FS 3
 // ### EXO 3
-#define NB_EVENT_MAX 1e8
+#define NB_EVENT_MAX 1e9
 // ### EXO 4
 //#define NB_EVENT_MAX 1e9
 #define DEBUG1
@@ -102,6 +102,17 @@ int getRandomInSet(int size)
 	}
 
 	return k;
+}
+
+int sum_QUEUE(int* QUEUE, int size)
+{
+	int res = 0;
+	for(int i = 0; i < size; i++)
+	{
+		if(QUEUE[i] > 1)
+			res += QUEUE[i];
+	}
+	return res;
 }
 
 void resetFreeServ(int* freeServ, int size)
@@ -217,7 +228,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
-	double S = 0.0;
+//double S = 0.0;
 
 	double totalWaitingTime = 0.0;
 	int totalAmountClients = 1;
@@ -228,12 +239,12 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
  	printf("AC <%d> - DS <%d> - FS <%d> - S_BUSY <%d>\n", AC[i], DS[i], FS[i], S_BUSY[i]);
 }
  exit(0); */
-	double lastT = 1e-6;
+//double lastT = 1e-6;
 	unsigned long int nb_e = 0;
 	double max = 0.0;
 	double min = 0.0;
-	double nbmoy = 0;
-	double L_MANCHON = 1e3;
+//double nbmoy = 0;
+	double L_MANCHON = 1e5;
 	*converge=0;
 	printf("### SIMUL %.3lf %.3lf\n",lambda,mu);
 	while ((nb_event < NB_EVENT_MAX) && (!(*converge))) {
@@ -242,8 +253,8 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Nouveau Client ------ //
 		if (e->le_type >= AC[0] && e->le_type <= AC[n-1]) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
-			lastT = T;
+//S = S + N*(T-lastT);
+//lastT = T;
 			N++;
 			(QUEUE[e->le_type])++;
 //printf("Before shortest Queue\n");
@@ -286,9 +297,9 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Fin Service ------ //
 		if (e->le_type >= FS[0] && e->le_type <= FS[n-1]) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
+//S = S + N*(T-lastT);
 			int offsetFStoAC = e->le_type - (2*n);
-			lastT = T;
+//lastT = T;
 //printf("IN FS: Q_Bef = %d\n");
 			(QUEUE[offsetFStoAC])--;
 			N--;
@@ -305,15 +316,15 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 
 		nb_event++;
 		nb_e++;
-		nbmoy = S/lastT;
-		averageWaitingTime = totalWaitingTime / (double)totalAmountClients;
+//nbmoy = S/lastT;
+		averageWaitingTime = totalWaitingTime / (double)(totalAmountClients - sum_QUEUE(QUEUE, n));
 //printf("AWT: %lf\n", averageWaitingTime);
 		if (averageWaitingTime>max) max = averageWaitingTime;
 		if (averageWaitingTime<min) min = averageWaitingTime;
 		if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
 			if (max-min <= averageWaitingTime*EPSILON) *converge = 1;
 			else {	nb_e = 0; max = min = averageWaitingTime;
-					L_MANCHON = 1e3*averageWaitingTime;
+					L_MANCHON = 1e5*averageWaitingTime;
 				}
 		}
 		free(e);
@@ -330,7 +341,7 @@ printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageW
 printf("\n");
 #endif
 
-printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountClients, averageWaitingTime);
+printf("TotalW: %lf, totalC: %d, average: %lf - sum: %d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, sum_QUEUE(QUEUE, n));
 
 	// free tes putains de DS[] etc bordel
 	free(DS);
@@ -348,24 +359,25 @@ printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountC
 
 int main () {
 	FILE *F;
-	F = fopen("mm1_5.data","w");
-	srand(10);
+	F = fopen("mm1_5AZ.data","w");
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
 	int converge = 0;
 
 // ### EXO 3
-	for (lambda = 0.025 ; lambda < 10.1; lambda += 0.05) {
+	for (lambda = 9.9 ; lambda <= 10.0; lambda += 0.25) {
 		nbmoy = simul_MMn (lambda,mu,&converge, 10);
 		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 			else printf("Pas de convergence\n");
+
+			printf("\n");
 	}
 
 	// Pas sensé converger
-	nbmoy = simul_MMn (11,mu,&converge, 10);
-	if (converge) fprintf(F,"%lf %lf\n",11/(10*mu),nbmoy);
-		else printf("Pas de convergence\n");
+	// nbmoy = simul_MMn (11,mu,&converge, 10);
+	// if (converge) fprintf(F,"%lf %lf\n",11/(10*mu),nbmoy);
+	// 	else printf("Pas de convergence\n");
 // ### EXO 4
 /*
 	int i;

@@ -103,6 +103,17 @@ int getRandomInSet(int size)
 	return k;
 }
 
+int sum_QUEUE(int* QUEUE, int size)
+{
+	int res = 0;
+	for(int i = 0; i < size; i++)
+	{
+		if(QUEUE[i] > 1)
+			res += QUEUE[i];
+	}
+	return res;
+}
+
 double simul_MMn (double lambda, double mu, int *converge, int n) {
 
 	if(n <= 0)
@@ -151,9 +162,9 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Nouveau Client ------ //
 		if (e->le_type >= AC[0] && e->le_type <= AC[n-1]) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
-			lastT = T;
-			N++;
+//S = S + N*(T-lastT);
+//lastT = T;
+N++;
 			(QUEUE[e->le_type])++;
 			int randomAC = getRandomInSet(n);
 //printf("AC[%d] - randomAC: %d, QUEUE: %d\n", e->le_type, randomAC, QUEUE[e->le_type]);
@@ -185,9 +196,9 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Fin Service ------ //
 		if (e->le_type >= FS[0] && e->le_type <= FS[n-1]) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
+//S = S + N*(T-lastT);
 			int offsetFStoAC = e->le_type - (2*n);
-			lastT = T;
+//lastT = T;
 //printf("IN FS: Q_Bef = %d\n");
 			(QUEUE[offsetFStoAC])--;
 			N--;
@@ -204,8 +215,8 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 
 		nb_event++;
 		nb_e++;
-		nbmoy = S/lastT;
-		averageWaitingTime = totalWaitingTime / (double)totalAmountClients;
+//nbmoy = S/lastT;
+		averageWaitingTime = totalWaitingTime / (double)(totalAmountClients - sum_QUEUE(QUEUE, n));
 //printf("AWT: %lf\n", averageWaitingTime);
 		if (averageWaitingTime>max) max = averageWaitingTime;
 		if (averageWaitingTime<min) min = averageWaitingTime;
@@ -229,7 +240,7 @@ printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageW
 printf("\n");
 #endif
 
-printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountClients, averageWaitingTime);
+printf("TotalW: %lf, totalC: %d, average: %lf - sum: %d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, sum_QUEUE(QUEUE, n));
 
 
 	// free tes putains de DS[] etc bordel
@@ -248,23 +259,23 @@ printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountC
 
 int main () {
 	FILE *F;
-	F = fopen("mm1_4.data","w");
+	F = fopen("mm1_4A.data","w");
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
 	int converge = 0;
 
 // ### EXO 3
-	for (lambda = 0.025 ; lambda < 10.1; lambda += 0.05) {
+	for (lambda = 9.0 ; lambda <= 10.0; lambda += 0.1) {
 		nbmoy = simul_MMn (lambda,mu,&converge, 10);
 		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 			else printf("Pas de convergence\n");
 	}
 
 	// Pas sensé converger
-	nbmoy = simul_MMn (11,mu,&converge, 10);
-	if (converge) fprintf(F,"%lf %lf\n",(double)11/(10*mu),nbmoy);
-		else printf("Pas de convergence\n");
+	// nbmoy = simul_MMn (11,mu,&converge, 10);
+	// if (converge) fprintf(F,"%lf %lf\n",(double)11/(10*mu),nbmoy);
+	// 	else printf("Pas de convergence\n");
 // ### EXO 4
 /*
 	int i;

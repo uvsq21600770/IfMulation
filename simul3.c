@@ -118,10 +118,10 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
-	double S = 0.0;
+//double S = 0.0;
 
 	double totalWaitingTime = 0.0;
-	int totalAmountClients = 0;
+	long long int totalAmountClients = 0;
 	double averageWaitingTime = 0.0;
 
 	int* DS = initDS(n);
@@ -135,11 +135,11 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 // 	printf("DS <%d> - FS <%d> - S_BUSY <%d>\n", DS[i], FS[i], S_BUSY[i]);
 // }
 // exit(0);
-	double lastT = 1e-6;
+//double lastT = 1e-6;
 	unsigned long int nb_e = 0;
 	double max = 0.0;
 	double min = 0.0;
-	double nbmoy = 0;
+//double nbmoy = 0;
 	double L_MANCHON = 1e3;
 	*converge=0;
 	printf("### SIMUL %.3lf %.3lf\n",lambda,mu);
@@ -149,8 +149,8 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Nouveau Client ------ //
 		if (e->le_type==AC) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
-			lastT = T;
+//S = S + N*(T-lastT);
+//lastT = T;
 			N++;
 			double delay = T+expo(lambda);
 // printf("[AC] T = %lf\n", T);
@@ -214,8 +214,8 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Fin Service ------ //
 		if (e->le_type >= FS[0] && e->le_type <= FS[n-1]) {
 			T = e->la_date;
-			S = S + N*(T-lastT);
-			lastT = T;
+//S = S + N*(T-lastT);
+//lastT = T;
 			N--;
 //printf("FS[%d] (%d) ", e->le_type - n - 1, FS[e->le_type - n - 1]);
 			if (N <= n-1) // Tous les clients de la file sont sur un Serveur
@@ -236,8 +236,13 @@ STOP++;
 //printf("T= %lf\n", T);
 		nb_event++;
 		nb_e++;
-		nbmoy = S/lastT;
-		averageWaitingTime = totalWaitingTime / (double)totalAmountClients;
+//nbmoy = S/lastT;
+		averageWaitingTime = totalWaitingTime / (double)(totalAmountClients - N );
+		// averageWaitingTime = totalWaitingTime / (double)(totalAmountClients -(N - (n - nb_S_FREE)));
+		//                                                                  | |      |=> Nbr de serveurs occupé
+		//                  																								| |=> File+dans serveurs
+		//																											  					|=> Nbr dans la file sans les serveurs
+
 //printf("AWT: %lf\n", averageWaitingTime);
 		if (averageWaitingTime>max) max = averageWaitingTime;
 		if (averageWaitingTime<min) min = averageWaitingTime;
@@ -257,7 +262,7 @@ STOP++;
 // }
 		free(e);
 #ifdef DEBUG1
-if (nb_event % 1000000==0) {
+if (nb_event % 10000000==0) {
 	//printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
 	printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageWaitingTime,max);
 	fflush(stdout);
@@ -269,7 +274,7 @@ printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageW
 printf("\n");
 #endif
 
-printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountClients, averageWaitingTime);
+printf("TotalW: %lf, totalC: %lld, average: %lf - N:%ld - n:%d - free:%d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, N, n, nb_S_FREE);
 
 		// free tes putains de DS[] etc bordel
 		free(DS);
@@ -283,24 +288,24 @@ printf("TotalW: %lf, totalC: %d, average: %lf\n", totalWaitingTime, totalAmountC
 
 int main () {
 	FILE *F;
-	F = fopen("mm1_3.data","w");
-	srand(10);
+	F = fopen("mm1_3B.data","w");
+	//srand(10);
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
 	int converge = 0;
 
 // ### EXO 3
-	for (lambda = 0.025 ; lambda < 10.1; lambda += 0.05) {
+	for (lambda = 9; lambda <= 10.0; lambda += 0.1) {
 		nbmoy = simul_MMn (lambda,mu,&converge, 10);
 		if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 			else printf("Pas de convergence\n");
 	}
 
 	// Pas sensé converger
-	nbmoy = simul_MMn (11,mu,&converge, 10);
-	if (converge) fprintf(F,"%lf %lf\n",11/(10*mu),nbmoy);
-		else printf("Pas de convergence\n");
+	// nbmoy = simul_MMn (11,mu,&converge, 10);
+	// if (converge) fprintf(F,"%lf %lf\n",11/(10*mu),nbmoy);
+	// 	else printf("Pas de convergence\n");
 // ### EXO 4
 /*
 	int i;
