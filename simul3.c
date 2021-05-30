@@ -1,8 +1,6 @@
 #include "math.h"
 #include "Include/TAC.h"
 
-int STOP = 0;
-
 // ## 1. Les générateurs aléatoires
 double unif() {
 	return (double)random()/((double)RAND_MAX);
@@ -71,12 +69,8 @@ int* initS_BUSY(int n)
 
 // ## 3. La simulation
 #define AC 0
-//#define DS 2
-//#define FS 3
-// ### EXO 3
 #define NB_EVENT_MAX 1e9
-// ### EXO 4
-//#define NB_EVENT_MAX 1e9
+
 #define DEBUG1
 #define EPSILON 1e-4
 struct evenement * nouveau_evenement (int le_type, double la_date) {
@@ -118,7 +112,6 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
-//double S = 0.0;
 
 	double totalWaitingTime = 0.0;
 	long long int totalAmountClients = 0;
@@ -129,17 +122,9 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	int* S_BUSY = initS_BUSY(n);
 	int nb_S_FREE = n;
 
-
-// for(int i = 0; i < n; i++)
-// {
-// 	printf("DS <%d> - FS <%d> - S_BUSY <%d>\n", DS[i], FS[i], S_BUSY[i]);
-// }
-// exit(0);
-//double lastT = 1e-6;
 	unsigned long int nb_e = 0;
 	double max = 0.0;
 	double min = 0.0;
-//double nbmoy = 0;
 	double L_MANCHON = 2e4;
 	*converge=0;
 	printf("### SIMUL %.3lf %.3lf\n",lambda,mu);
@@ -149,27 +134,19 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Nouveau Client ------ //
 		if (e->le_type==AC) {
 			T = e->la_date;
-//S = S + N*(T-lastT);
-//lastT = T;
+
 			N++;
 			double delay = T+expo(lambda);
-// printf("[AC] T = %lf\n", T);
+
 			E = inserer_evenement(nouveau_evenement(AC,delay),E);
 			add_TAC(l_TAC, T);
 			totalAmountClients++;
-// if(N > n)
-// printf("delay incoming at some point\n");
+
 			if (N <= n) // On a au moins un PC de libre
 			{
 				// On pull une uniforme et on détermine le Serveur libre associé
 				double unifPull = unif();
-				// double unifPull = 0.9; choisit au hasard par la team pour tester en MM1
 				int k = 0;
-
-// if(STOP == 0)
-// {
-// 	printf("<%lf> - <%lf>\n", (double)k/(double)nb_S_FREE , (double)(k+1)/(double)nb_S_FREE);
-// }
 
 				// sort du while quand on est sur le bon Serveur, k est son indice dans la liste des Serveurs libres
 				while( !(unifPull >= (double)k/(double)nb_S_FREE && unifPull <= (double)(k+1)/(double)nb_S_FREE ) )
@@ -194,7 +171,6 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 				E = inserer_evenement(nouveau_evenement(DS[realIndex],T),E);
 				S_BUSY[realIndex] = 1;
 				nb_S_FREE--;
-//printf("AC - DS[%d] - free: %d\n", realIndex, nb_S_FREE);
 			}
 		}
 
@@ -202,11 +178,9 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		if (e->le_type >= DS[0] && e->le_type <= DS[n-1]) {
 			T = e->la_date;
 			int offsetDStoFS = e->le_type+n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
-//printf("DS[%d] (%d) into FS[%d] (%d) - off(%d)\n",e->le_type - 1 ,DS[e->le_type - 1], e->le_type - 1, FS[e->le_type - 1], offsetDStoFS);
 
 			double arrivingTime = pop_TAC(l_TAC);
 			totalWaitingTime += T - arrivingTime;
-// printf("[DS %d] %lf -- %lf = %lf - %lf\n",e->le_type ,totalWaitingTime, T - arrivingTime, T, arrivingTime);
 
 			E = inserer_evenement(nouveau_evenement(offsetDStoFS,T+expo(mu)),E);
 		}
@@ -214,36 +188,29 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Fin Service ------ //
 		if (e->le_type >= FS[0] && e->le_type <= FS[n-1]) {
 			T = e->la_date;
-//S = S + N*(T-lastT);
-//lastT = T;
+
 			N--;
-//printf("FS[%d] (%d) ", e->le_type - n - 1, FS[e->le_type - n - 1]);
+
 			if (N <= n-1) // Tous les clients de la file sont sur un Serveur
 			{
 				S_BUSY[e->le_type - n - 1] = 0; // on offset pour retrouver le bon Serveur
 				nb_S_FREE++;
-//printf("no longer busy ");
 			}
 			else{
 				E = inserer_evenement(nouveau_evenement(DS[e->le_type - n - 1],T),E);
-//printf("FS - DS[%d] - free: %d\n", e->le_type - n, nb_S_FREE);
-			}
-//printf("\n");
-		}
-STOP++;
-//if(STOP == 60) exit(100);
 
-//printf("T= %lf\n", T);
+			}
+
+		}
+
 		nb_event++;
 		nb_e++;
-//nbmoy = S/lastT;
-		//averageWaitingTime = totalWaitingTime / (double)(totalAmountClients - N );
-		  averageWaitingTime = totalWaitingTime / (double)(totalAmountClients -(N - (n - nb_S_FREE)));
-		//                                                                    |   |    |=> Nbr de serveurs occupé
-		//                  																								  |   |=> File+dans serveurs
-		//																											  					  |=> Nbr dans la file sans les serveurs
 
-//printf("AWT: %lf\n", averageWaitingTime);
+		 averageWaitingTime = totalWaitingTime / (double)(totalAmountClients -(N - (n - nb_S_FREE)));
+		//                                                                    |   |    |=> Nbr de serveurs occupé
+		//                  											 	  |   |=> File+dans serveurs
+		//																	  |=> Nbr dans la file sans les serveurs
+
 		if (averageWaitingTime>max) max = averageWaitingTime;
 		if (averageWaitingTime<min) min = averageWaitingTime;
 		if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
@@ -252,18 +219,10 @@ STOP++;
 					L_MANCHON = 2e4*averageWaitingTime;
 				}
 		}
-// if (nbmoy>max) max = nbmoy;
-// if (nbmoy<min) min = nbmoy;
-// if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
-// 	if (max-min < nbmoy*EPSILON) *converge = 1;
-// 	else {	nb_e = 0; max = min = nbmoy;
-// 			L_MANCHON = 1e3*nbmoy;
-// 		}
-// }
+
 		free(e);
 #ifdef DEBUG1
 if (nb_event % 10000000==0) {
-	//printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
 	printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageWaitingTime,max);
 	fflush(stdout);
 	}
@@ -276,7 +235,6 @@ printf("\n");
 
 printf("TotalW: %lf, totalC: %lld, average: %lf - N:%ld - n:%d - free:%d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, N, n, nb_S_FREE);
 
-		// free tes putains de DS[] etc bordel
 		free(DS);
 		free(FS);
 		free(S_BUSY);
@@ -289,7 +247,6 @@ printf("TotalW: %lf, totalC: %lld, average: %lf - N:%ld - n:%d - free:%d\n", tot
 int main () {
 	FILE *F;
 	F = fopen("mm1_3.data","w");
-	//srand(10);
 	double lambda;
 	double mu = 1.0;
 	double nbmoy;
@@ -311,12 +268,21 @@ int main () {
 		printf("\n");
 	}
 
-	for (lambda = 9.9; lambda < 10.05; lambda += 0.025) {
+	for (lambda = 9.9; lambda < 10.0; lambda += 0.025) {
 	nbmoy = simul_MMn (lambda,mu,&converge, 10);
 	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 		else printf("Pas de convergence\n");
 
 		printf("\n");
 	}
+	
+	// Si vous voulez vérifier sur 10.0+
+	/*for (lambda = 10.0; lambda < 10.05; lambda += 0.025) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
+	}*/
 	fclose(F);
 }

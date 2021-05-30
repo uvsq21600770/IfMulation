@@ -1,4 +1,6 @@
 all: run run2 run3
+	gnuplot mmn2.gplt
+	gnuplot mmn3.gplt
 
 run : sim
 	./sim

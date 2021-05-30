@@ -54,13 +54,8 @@ int* init_QUEUE(int n)
 }
 
 // ## 3. La simulation
-//#define AC 0
-//#define DS 2
-//#define FS 3
-// ### EXO 3
+
 #define NB_EVENT_MAX 1e9
-// ### EXO 4
-//#define NB_EVENT_MAX 1e9
 #define DEBUG1
 #define EPSILON 1e-4
 struct evenement * nouveau_evenement (int le_type, double la_date) {
@@ -156,9 +151,9 @@ int getMinInQueue(int* QUEUE, int size)
 			minVal = QUEUE[i];
 			minIndex = i;
 			NB_S_CANDIDAT = 1;
-//printFreeServ(freeServ, size);
+
 			resetFreeServ(freeServ, size);
-//printFreeServ(freeServ, size);
+
 			freeServ[i] = 1;
 		}
 		else if(QUEUE[i] == minVal) // On trouve une autre file de même taille que la minimale
@@ -171,7 +166,7 @@ int getMinInQueue(int* QUEUE, int size)
 	if(NB_S_CANDIDAT == 1) // On a une seule file plus petite que les autres
 	{
 		free(freeServ);
-//printf("Min: %d\n", minIndex);
+
 		return minIndex;
 	} else {
 		// Si on a plusieurs files de taille minimale ==>
@@ -192,12 +187,8 @@ int getMinInQueue(int* QUEUE, int size)
 			}
 		}
 
-// printf("RealIndexF: %d ", realIndex);
-// printf("rng: %d\n", amountServersToSkip);
-// printQUEUE(QUEUE, size);
-//printFreeServ(freeServ, size);
+
 		free(freeServ);
-//printf("realIndex: %d\n", realIndex);
 		return realIndex;
 	}
 	free(freeServ);
@@ -218,32 +209,27 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	int* FS = init(n, 2 * n);
 	int* QUEUE = init_QUEUE(n);
 
-//int nb_S_FREE = n;
+
 
 	// Toutes les queues sont vides, on peut donc juste faire un tirage uniforme
 	int randomFirstAC = getRandomInSet(n);
 	ECHEANCIER E = nouveau_evenement (AC[randomFirstAC],0.0);
 
-//printf("F_AC: %d - QUEUE: %d\n", randomFirstAC, QUEUE[randomFirstAC]);
+
 	unsigned long int N = 0; // Nombre de clients dans la file
 	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
-//double S = 0.0;
+
 
 	double totalWaitingTime = 0.0;
 	int totalAmountClients = 1;
 	double averageWaitingTime = 0.0;
 
-/*  for(int i = 0; i < n; i++)
- {
- 	printf("AC <%d> - DS <%d> - FS <%d> - S_BUSY <%d>\n", AC[i], DS[i], FS[i], S_BUSY[i]);
-}
- exit(0); */
-//double lastT = 1e-6;
+
 	unsigned long int nb_e = 0;
 	double max = 0.0;
 	double min = 0.0;
-//double nbmoy = 0;
+
 	double L_MANCHON = 2e4;
 	*converge=0;
 	printf("### SIMUL %.3lf %.3lf\n",lambda,mu);
@@ -253,19 +239,12 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Nouveau Client ------ //
 		if (e->le_type >= AC[0] && e->le_type <= AC[n-1]) {
 			T = e->la_date;
-//S = S + N*(T-lastT);
-//lastT = T;
+
 			N++;
 			(QUEUE[e->le_type])++;
-//printf("Before shortest Queue\n");
+
 			int shortestQueueAC = getMinInQueue(QUEUE, n);
 
-//  if(QUEUE[0] > 2)
-// {
-// printf("\n --------\n sQAC: %d\n", shortestQueueAC);
-// printQUEUE(QUEUE, n);
-//  }
-//printf("AC[%d] - randomAC: %d, QUEUE: %d\n", e->le_type, shortestQueueAC, QUEUE[e->le_type]);
 			double delay = T+expo(lambda);
 			E = inserer_evenement(nouveau_evenement(AC[shortestQueueAC],delay),E);
 			add_TAC(l_TAC[AC[e->le_type]], T); // on pourrait directement mettre e->le_type pour l'instant
@@ -274,9 +253,6 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			if (QUEUE[e->le_type] == 1) // Le PC de cette queue est libre
 			{
 				E = inserer_evenement(nouveau_evenement(DS[e->le_type],T),E);
-//S_BUSY[randomAC] = 1;
-//nb_S_FREE--;
-//printf("AC - DS[%d] - free: %d\n", realIndex, nb_S_FREE);
 			}
 		}
 
@@ -285,8 +261,6 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 			T = e->la_date;
 			int offsetDStoFS = e->le_type+n; // C'est pas vraiment plus parlant que de mettre direct e->... dans le call de fonction
 			int offsetDStoAC = e->le_type-n;
-//printf("DS[%d] (%d) into FS[%d] (%d) - off(%d)\n",e->le_type - 1 ,DS[e->le_type - 1], e->le_type - 1, FS[e->le_type - 1], offsetDStoFS);
-//printf("DS[%d] - offset: %d\n", e->le_type, offsetDStoFS);
 
 			double arrivingTime = pop_TAC(l_TAC[offsetDStoAC]);
 			totalWaitingTime += T - arrivingTime;
@@ -297,28 +271,24 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		// ------ Fin Service ------ //
 		if (e->le_type >= FS[0] && e->le_type <= FS[n-1]) {
 			T = e->la_date;
-//S = S + N*(T-lastT);
+
 			int offsetFStoAC = e->le_type - (2*n);
-//lastT = T;
-//printf("IN FS: Q_Bef = %d\n");
+
 			(QUEUE[offsetFStoAC])--;
 			N--;
-//printf("IN FS: Q_Aft = %d\n");
-//printf("FS[%d] - offset: %d, QUEUE: %d\n", e->le_type, offsetFStoAC, QUEUE[offsetFStoAC]);
+
 			if (QUEUE[offsetFStoAC] > 0) // Il reste des clients dans la file
 			{
 				E = inserer_evenement(nouveau_evenement(DS[offsetFStoAC],T),E);
 			}
 
 		}
-		STOP++;
-//if(STOP == 5) exit(10);
+
 
 		nb_event++;
 		nb_e++;
-//nbmoy = S/lastT;
 		averageWaitingTime = totalWaitingTime / (double)(totalAmountClients - sum_QUEUE(QUEUE, n));
-//printf("AWT: %lf\n", averageWaitingTime);
+
 		if (averageWaitingTime>max) max = averageWaitingTime;
 		if (averageWaitingTime<min) min = averageWaitingTime;
 		if (nb_e>L_MANCHON) { // on a atteint la fin du manchon
@@ -330,7 +300,6 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 		free(e);
 #ifdef DEBUG1
 if (nb_event % 1000000==0) {
-	//printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,S/lastT,max);
 	printf("%.3le %lu %.3le || %lf < %lf < %lf\r",T,N,(double)nb_event,min,averageWaitingTime,max);
 	fflush(stdout);
 	}
@@ -343,7 +312,6 @@ printf("\n");
 
 printf("TotalW: %lf, totalC: %d, average: %lf - sum: %d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, sum_QUEUE(QUEUE, n));
 
-	// free tes putains de DS[] etc bordel
 	free(DS);
 	free(FS);
 	free(QUEUE);
@@ -382,13 +350,22 @@ int main () {
 		printf("\n");
 	}
 
-	for (lambda = 9.9; lambda < 10.05; lambda += 0.025) {
+	for (lambda = 9.9; lambda < 10.0; lambda += 0.025) {
 	nbmoy = simul_MMn (lambda,mu,&converge, 10);
 	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 		else printf("Pas de convergence\n");
 
 		printf("\n");
 	}
+	
+	// Si vous voulez vérifier sur 10.0+
+	/*for (lambda = 10.0; lambda < 10.05; lambda += 0.025) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
+	}*/
 
 	fclose(F);
 }

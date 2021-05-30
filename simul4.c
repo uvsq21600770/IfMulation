@@ -125,6 +125,7 @@ double simul_MMn (double lambda, double mu, int *converge, int n) {
 	ECHEANCIER E = nouveau_evenement (AC[randomFirstAC],0.0);
 
 	unsigned long int N = 0; // Nombre de clients dans la file
+	double T = 0.0; // La date courante
 	unsigned long int nb_event = 0;
 
 	long double totalWaitingTime = 0.0;
@@ -215,7 +216,6 @@ printf("\n");
 printf("TotalW: %Lf, totalC: %ld, average: %lf - sum: %d\n", totalWaitingTime, totalAmountClients, averageWaitingTime, sum_QUEUE(QUEUE, n));
 
 
-	// free tes putains de DS[] etc bordel
 	free(DS);
 	free(FS);
 	free(QUEUE);
@@ -253,13 +253,22 @@ int main () {
 		printf("\n");
 	}
 
-	for (lambda = 9.9; lambda < 10.05; lambda += 0.025) {
+	for (lambda = 9.9; lambda < 10.0; lambda += 0.025) {
 	nbmoy = simul_MMn (lambda,mu,&converge, 10);
 	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
 		else printf("Pas de convergence\n");
 
 		printf("\n");
 	}
+	
+	// Si vous voulez vérifier sur 10.0+
+	/*for (lambda = 10.0; lambda < 10.05; lambda += 0.025) {
+	nbmoy = simul_MMn (lambda,mu,&converge, 10);
+	if (converge) fprintf(F,"%lf %lf\n",lambda/mu,nbmoy);
+		else printf("Pas de convergence\n");
+
+		printf("\n");
+	}*/
 
 	fclose(F);
 }
